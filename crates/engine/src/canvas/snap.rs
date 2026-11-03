@@ -52,6 +52,7 @@ pub struct Targets {
     pub space: Affine,
     /// The moving layers' box in snap space when gathered.
     pub moving: Option<Rect>,
+    index: Option<(Vec<usize>, Vec<usize>)>,
 }
 
 /// A gap along a row: from, to, and where across it is drawn.
@@ -125,6 +126,7 @@ impl Targets {
         {
             lines(f, to * doc.world_transform(f), Some(b), &mut t);
         }
+        t.reindex();
         t
     }
 
@@ -180,6 +182,7 @@ impl Targets {
 
     /// A box to snap to (in snap space): its edges and centre lines, and equal spacing with it.
     pub fn add_box(&mut self, r: Rect) {
+        self.index = None;
         for x in [r.x0, r.center().x, r.x1] {
             self.xs.push((x, r.y0, r.y1));
         }
@@ -191,6 +194,7 @@ impl Targets {
 
     /// Take back what [`Targets::add_box`] added for `r`.
     pub fn remove_box(&mut self, r: Rect) {
+        self.index = None;
         let take = |v: &mut Vec<Span>, s: Span| {
             if let Some(i) = v.iter().rposition(|x| *x == s) {
                 v.remove(i);
@@ -210,9 +214,20 @@ impl Targets {
     /// A point to snap onto (a vector point, a segment midpoint): lines through it on both axes,
     /// and a marker when a moving point lands on it.
     pub fn add_point(&mut self, p: Point) {
+        self.index = None;
         self.xs.push((p.x, p.y, p.y));
         self.ys.push((p.y, p.x, p.x));
         self.points.push(p);
+    }
+
+    /// Rebuild the gesture's sorted line lookup after its targets change.
+    pub fn reindex(&mut self) {
+        let sorted = |lines: &[Span]| {
+            let mut order: Vec<usize> = (0..lines.len()).filter(|&i| lines[i].0.is_finite()).collect();
+            order.sort_by(|&a, &b| lines[a].0.total_cmp(&lines[b].0));
+            order
+        };
+        self.index = Some((sorted(&self.xs), sorted(&self.ys)));
     }
 
     /// Snap a moving box `r` given in snap space: returns the correction (a page vector) and the
@@ -367,7 +382,27 @@ impl Targets {
     /// ones. Returns the nearest correction on each axis within `threshold` and the guides for the
     /// lines that coincide with targets afterwards.
     pub fn snap_spans(&self, xs: &[Span], ys: &[Span], threshold: f64) -> (Option<f64>, Option<f64>, Vec<Guide>) {
-        let best = |cands: &[Span], vals: &[Span]| -> Option<f64> {
+        let best = |cands: &[Span], order: Option<&Vec<usize>>, vals: &[Span]| -> Option<f64> {
+            if let Some(order) = order.filter(|_| threshold.is_finite() && threshold >= 0.0) {
+                let mut best: Option<(f64, usize, usize)> = None;
+                for (value_index, (v, _, _)) in vals.iter().enumerate().filter(|(_, (v, _, _))| v.is_finite()) {
+                    let lo = (v - threshold).next_down();
+                    let hi = (v + threshold).next_up();
+                    let start = order.partition_point(|&i| cands[i].0 < lo);
+                    let end = order.partition_point(|&i| cands[i].0 <= hi);
+                    for &i in &order[start..end] {
+                        let d = cands[i].0 - v;
+                        if d.abs() <= threshold
+                            && best.is_none_or(|(previous, candidate_index, previous_value)| {
+                                d.abs() < previous.abs() || (d.abs() == previous.abs() && (i, value_index) < (candidate_index, previous_value))
+                            })
+                        {
+                            best = Some((d, i, value_index));
+                        }
+                    }
+                }
+                return best.map(|(d, _, _)| d);
+            }
             let mut best: Option<f64> = None;
             for (line, _, _) in cands {
                 for (v, _, _) in vals {
@@ -379,7 +414,7 @@ impl Targets {
             }
             best
         };
-        let (dx, dy) = (best(&self.xs, xs), best(&self.ys, ys));
+        let (dx, dy) = (best(&self.xs, self.index.as_ref().map(|i| &i.0), xs), best(&self.ys, self.index.as_ref().map(|i| &i.1), ys));
         let (ox, oy) = (dx.unwrap_or(0.0), dy.unwrap_or(0.0));
         let xs: Vec<Span> = xs.iter().map(|(x, a, b)| (x + ox, a + oy, b + oy)).collect();
         let ys: Vec<Span> = ys.iter().map(|(y, a, b)| (y + oy, a + ox, b + ox)).collect();
@@ -405,18 +440,24 @@ impl Targets {
     /// Guides for moving lines (as in [`Self::snap_spans`]) that coincide with targets, each
     /// spanning the line and the targets on it.
     fn guides_spans(&self, xs: &[Span], ys: &[Span]) -> Vec<Guide> {
-        let span = |cands: &[Span], (v, a, b): Span| -> Option<(f64, f64)> {
-            let hits: Vec<&Span> = cands.iter().filter(|(l, _, _)| (l - v).abs() < 1e-6).collect();
+        let span = |cands: &[Span], order: Option<&Vec<usize>>, (v, a, b): Span| -> Option<(f64, f64)> {
+            let hits: Vec<&Span> = if let Some(order) = order.filter(|_| v.is_finite()) {
+                let start = order.partition_point(|&i| cands[i].0 < (v - 1e-6).next_down());
+                let end = order.partition_point(|&i| cands[i].0 <= (v + 1e-6).next_up());
+                order[start..end].iter().map(|&i| &cands[i]).filter(|(l, _, _)| (l - v).abs() < 1e-6).collect()
+            } else {
+                cands.iter().filter(|(l, _, _)| (l - v).abs() < 1e-6).collect()
+            };
             (!hits.is_empty()).then(|| (hits.iter().map(|h| h.1).fold(a, f64::min).max(-1e6), hits.iter().map(|h| h.2).fold(b, f64::max).min(1e6)))
         };
         let mut out = Vec::new();
         for x in xs {
-            if let Some((y0, y1)) = span(&self.xs, *x) {
+            if let Some((y0, y1)) = span(&self.xs, self.index.as_ref().map(|i| &i.0), *x) {
                 out.push(Guide::new(Point::new(x.0, y0), Point::new(x.0, y1)));
             }
         }
         for y in ys {
-            if let Some((x0, x1)) = span(&self.ys, *y) {
+            if let Some((x0, x1)) = span(&self.ys, self.index.as_ref().map(|i| &i.1), *y) {
                 out.push(Guide::new(Point::new(x0, y.0), Point::new(x1, y.0)));
             }
         }
@@ -451,4 +492,64 @@ fn linear(m: Affine, v: Vec2) -> Vec2 {
 fn rect_spans(r: Rect) -> ([Span; 3], [Span; 3]) {
     let c = r.center();
     ([(r.x0, r.y0, r.y1), (c.x, r.y0, r.y1), (r.x1, r.y0, r.y1)], [(r.y0, r.x0, r.x1), (c.y, r.x0, r.x1), (r.y1, r.x0, r.x1)])
+}
+
+#[cfg(test)]
+mod index_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn indexed_move_matches_linear(
+            boxes in prop::collection::vec((-200i32..200, -200i32..200, 1i32..50, 1i32..50), 0..100),
+            x in -250i32..250, y in -250i32..250, threshold in 0u32..20,
+        ) {
+            let mut targets = Targets { moving: Some(Rect::new(0.0, 0.0, 20.0, 20.0)), ..Default::default() };
+            for (left, top, width, height) in boxes {
+                targets.add_box(Rect::new(left as f64, top as f64, (left + width) as f64, (top + height) as f64));
+            }
+            let oracle = targets.clone();
+            targets.reindex();
+            let delta = Vec2::new(x as f64 / 2.0, y as f64 / 2.0);
+            prop_assert_eq!(targets.snap_move(delta, threshold as f64 / 2.0), oracle.snap_move(delta, threshold as f64 / 2.0));
+        }
+    }
+
+    #[test]
+    fn target_mutations_invalidate_index() {
+        let mut targets = Targets::default();
+        let original = Rect::new(10.0, 10.0, 20.0, 20.0);
+        let moved = Rect::new(40.0, 10.0, 50.0, 20.0);
+        targets.add_box(original);
+        targets.reindex();
+        targets.remove_box(original);
+        targets.add_box(moved);
+        assert!(targets.index.is_none());
+        let oracle = targets.snap_rect(Rect::new(39.0, 10.0, 49.0, 20.0), 2.0);
+        targets.reindex();
+        assert_eq!(targets.snap_rect(Rect::new(39.0, 10.0, 49.0, 20.0), 2.0), oracle);
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_5000_siblings_1000_moves() {
+        use std::hint::black_box;
+        use std::time::Instant;
+        let mut targets = Targets { moving: Some(Rect::new(0.0, 0.0, 10.0, 10.0)), ..Default::default() };
+        for index in 0..5_000 {
+            let x = (index % 100) as f64 * 30.0;
+            let y = (index / 100) as f64 * 30.0;
+            targets.add_box(Rect::new(x, y, x + 10.0, y + 10.0));
+        }
+        let linear = targets.clone();
+        targets.reindex();
+        for (name, source) in [("linear", &linear), ("indexed", &targets)] {
+            let start = Instant::now();
+            for index in 0..1_000 {
+                black_box(source.snap_move(Vec2::new((index % 100) as f64 * 3.1, (index / 100) as f64 * 7.3), 4.0));
+            }
+            eprintln!("{name}: {:.3} us/move", start.elapsed().as_secs_f64() * 1_000.0);
+        }
+    }
 }

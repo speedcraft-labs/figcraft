@@ -159,6 +159,7 @@ impl Session {
                     && let Some(b) = targets.moving
                 {
                     targets.add_box(b);
+                    targets.reindex();
                 }
                 if let Err(e) = self.begin_interaction(if ev.alt { "Duplicate" } else { "Move" }) {
                     if deselect.is_some() {
@@ -189,7 +190,12 @@ impl Session {
         {
             *duplicate = ev.alt;
             if let Some(b) = targets.moving {
-                if ev.alt { targets.add_box(b) } else { targets.remove_box(b) }
+                if ev.alt {
+                    targets.add_box(b)
+                } else {
+                    targets.remove_box(b)
+                }
+                targets.reindex();
             }
             if let Some(it) = self.ds_mut().ok().and_then(|ds| ds.interaction.as_mut()) {
                 it.label = if ev.alt { "Duplicate" } else { "Move" }.into();

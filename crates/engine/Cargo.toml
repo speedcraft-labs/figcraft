@@ -40,6 +40,7 @@ craft-font-store = { workspace = true, features = ["bundled-index"] }
 craft-font-catalog = { workspace = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
 zip = { workspace = true }
 wat = { workspace = true }
 image = { workspace = true }
