@@ -53,6 +53,8 @@ pub struct CanvasState {
     /// The file ([`figcraft_engine::DocState::uid`]) and page the texture shows: it is drawn only
     /// on them.
     tex_of: Option<(u64, NodeId)>,
+    /// Revision actually visible in `texture`; a live drag overlay cannot erase an older pose.
+    tex_revision: Option<u64>,
     /// The texture is a coarse preview (see [`crate::render_worker`]).
     pub tex_coarse: bool,
     /// The request the texture answers ([`crate::render_worker::Done::seq`]).
@@ -85,6 +87,12 @@ pub struct CanvasState {
     /// The pen pressure last reported during the current press (pen and stylus touches; the
     /// winit backends and browsers that report it).
     pressure: Option<f32>,
+    /// The page image and selection at a pointer press, kept long enough to identify a simple
+    /// one-layer move without retaining any document beyond the gesture.
+    drag_start: Option<DragStart>,
+    /// A simple isolated rectangle: omit it from the CPU background and draw its solid fill with
+    /// egui's wgpu painter until the refined CPU page arrives.
+    drag_preview: Option<DragPreview>,
     /// The latest scroll came from a mouse wheel rather than a trackpad (Scroll wheel zoom).
     wheel_is_mouse: bool,
 }
@@ -96,6 +104,7 @@ impl Default for CanvasState {
             texture: None,
             tex_view: None,
             tex_of: None,
+            tex_revision: None,
             tex_coarse: false,
             tex_seq: 0,
             submitted: None,
@@ -114,8 +123,136 @@ impl Default for CanvasState {
             last_hover: None,
             preedit: None,
             pressure: None,
+            drag_start: None,
+            drag_preview: None,
             wheel_is_mouse: false,
         }
+    }
+}
+
+struct DragStart {
+    doc: Arc<Document>,
+    selection: Vec<NodeId>,
+    page: NodeId,
+    uid: u64,
+    revision: u64,
+}
+
+struct DragPreview {
+    doc: Arc<Document>,
+    id: NodeId,
+    page: NodeId,
+    uid: u64,
+    revision: u64,
+    state_revision: u64,
+    /// Original draw bounds (used to erase the old position over the uniform page background).
+    original: figcraft_geom::Rect,
+    current: figcraft_geom::Rect,
+    fill: figcraft_color::Color,
+    background: figcraft_color::Color,
+}
+
+/// Select a rectangle for the immediate GPU drag path only when the rest of the page cannot
+/// affect its pixels. The normal renderer remains the reference and handles every other case.
+fn drag_preview(app: &FigApp) -> Option<DragPreview> {
+    let start = app.canvas.drag_start.as_ref()?;
+    let ds = app.session.ds().ok()?;
+    let [id] = start.selection.as_slice() else { return None };
+    if ds.uid != start.uid
+        || ds.page != start.page
+        || ds.selection.as_slice() != [*id]
+        || ds.doc.color_profile != figcraft_color::ColorProfile::Srgb
+        || app.canvas.tex_coarse
+        || app.canvas.tex_revision != Some(start.revision)
+    {
+        return None;
+    }
+    if ds.view.pixel_preview_scale().is_some() || ds.view.outlines || ds.view.outlines_selection || ds.view.proof_srgb || app.preedit_view().is_some()
+    {
+        return None;
+    }
+    let (old, new) = (start.doc.node(*id)?, ds.doc.node(*id)?);
+    if !simple_solid_rectangle(old) || !simple_solid_rectangle(new) || old.parent != Some(start.page) || new.parent != Some(start.page) {
+        return None;
+    }
+    if (old.width, old.height) != (new.width, new.height)
+        || !old.width.is_finite()
+        || !old.height.is_finite()
+        || old.width <= 0.0
+        || old.height <= 0.0
+        || old.name != new.name
+        || old.fills != new.fills
+    {
+        return None;
+    }
+    let (old_xf, new_xf) = (old.transform.as_coeffs(), new.transform.as_coeffs());
+    if old_xf[..4] != [1.0, 0.0, 0.0, 1.0] || new_xf[..4] != [1.0, 0.0, 0.0, 1.0] || old_xf[4..] == new_xf[4..] {
+        return None;
+    }
+    let original = start.doc.world_bounds(*id)?;
+    let current = ds.doc.world_bounds(*id)?;
+    let start_page = start.doc.node(start.page)?;
+    let live_page = ds.doc.node(ds.page)?;
+    let background = match &start_page.kind {
+        NodeKind::Page { background, .. } if background.a == 1.0 => *background,
+        _ => return None,
+    };
+    let live_background = match &live_page.kind {
+        NodeKind::Page { background, .. } => *background,
+        _ => return None,
+    };
+    if background != live_background {
+        return None;
+    }
+    let mut visible_siblings = start_page.children.iter().filter(|sibling| **sibling != *id).filter_map(|sibling| {
+        let node = start.doc.node(*sibling)?;
+        node.visible.then(|| start.doc.world_render_bounds(*sibling)).flatten()
+    });
+    let protected = original.union(current).inflate(1.0, 1.0);
+    if visible_siblings.any(|bounds| bounds.x0 < protected.x1 && bounds.x1 > protected.x0 && bounds.y0 < protected.y1 && bounds.y1 > protected.y0) {
+        return None;
+    }
+    let figcraft_color::PaintKind::Solid { color } = &new.fills.first()?.kind else { return None };
+    Some(DragPreview {
+        doc: start.doc.clone(),
+        id: *id,
+        page: start.page,
+        uid: start.uid,
+        revision: start.revision,
+        state_revision: ds.revision,
+        original,
+        current,
+        fill: *color,
+        background,
+    })
+}
+
+fn simple_solid_rectangle(node: &figcraft_doc::Node) -> bool {
+    let [paint] = node.fills.as_slice() else { return false };
+    let figcraft_color::PaintKind::Solid { color } = &paint.kind else { return false };
+    matches!(&node.kind, NodeKind::Rectangle)
+        && node.visible
+        && node.children.is_empty()
+        && node.opacity == 1.0
+        && node.blend == figcraft_color::BlendMode::Normal
+        && node.corners == Default::default()
+        && node.effects.is_empty()
+        && node.strokes.is_empty()
+        && !node.is_mask
+        && node.bound.is_empty()
+        && node.styles == Default::default()
+        && paint.visible
+        && paint.opacity == 1.0
+        && paint.color_alpha == 1.0
+        && paint.blend == figcraft_color::BlendMode::Normal
+        && color.a == 1.0
+}
+
+fn update_drag_preview(app: &mut FigApp, kind: PointerKind) {
+    match kind {
+        PointerKind::Down => app.canvas.drag_preview = None,
+        PointerKind::Move => app.canvas.drag_preview = drag_preview(app),
+        _ => {}
     }
 }
 
@@ -251,6 +388,13 @@ pub fn show(app: &mut FigApp, ui: &mut Ui, worker: &mut Worker) {
     if let Some(done) = worker.poll()
         && shows(&app.canvas, &done, shown)
     {
+        let settles_drag = app.canvas.drag_preview.as_ref().is_some_and(|preview| {
+            !done.coarse
+                && done.skip.is_empty()
+                && done.uid == preview.uid
+                && done.page == preview.page
+                && app.session.ds().ok().is_some_and(|ds| done.revision == ds.revision)
+        });
         if !done.coarse {
             app.canvas.render_work = Some(done.work);
             app.ui.render_ms = done.ms;
@@ -273,8 +417,12 @@ pub fn show(app: &mut FigApp, ui: &mut Ui, worker: &mut Worker) {
         }
         app.canvas.tex_view = Some(done.view);
         app.canvas.tex_of = Some((done.uid, done.page));
+        app.canvas.tex_revision = Some(done.revision);
         app.canvas.tex_coarse = done.coarse;
         app.canvas.tex_seq = done.seq;
+        if settles_drag {
+            app.canvas.drag_preview = None;
+        }
     }
     let painter = ui.painter_at(rect);
     painter.rect_filled(rect, CornerRadius::ZERO, bg);
@@ -286,6 +434,18 @@ pub fn show(app: &mut FigApp, ui: &mut Ui, worker: &mut Worker) {
         let pixel_preview = app.session.ds().ok().and_then(|ds| ds.view.pixel_preview_scale()) == Some(v.scale);
         let image_rect = presented_image_rect(tl, v, zoom, ppp, pixel_preview);
         painter.image(tex.id(), image_rect, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    }
+    if let Some(preview) =
+        app.canvas.drag_preview.as_ref().filter(|preview| {
+            shown == Some((preview.uid, preview.page)) && app.session.ds().ok().is_some_and(|ds| ds.revision == preview.state_revision)
+        })
+    {
+        let original =
+            Rect::from_two_pos(app.to_screen(preview.original.x0, preview.original.y0), app.to_screen(preview.original.x1, preview.original.y1));
+        let current =
+            Rect::from_two_pos(app.to_screen(preview.current.x0, preview.current.y0), app.to_screen(preview.current.x1, preview.current.y1));
+        painter.rect_filled(original, CornerRadius::ZERO, doc_c32(&ctx, preview.background));
+        painter.rect_filled(current, CornerRadius::ZERO, doc_c32(&ctx, preview.fill));
     }
     crate::dev_mode::refresh_measurements(app);
     app.session.tool.labels = overlays(app, &painter, &t);
@@ -390,3 +550,6 @@ mod wheel_zoom_tests;
 
 #[cfg(test)]
 mod zoom_preview_tests;
+
+#[cfg(test)]
+mod drag_preview_tests;

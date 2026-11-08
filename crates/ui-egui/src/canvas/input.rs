@@ -347,6 +347,9 @@ fn send(app: &mut FigApp, kind: PointerKind, pos: Pos2, m: &egui::Modifiers) {
     if hover && app.canvas.last_hover.as_ref().is_some_and(|k| *k == HoverKey::of(app, ev.clone())) {
         return;
     }
+    if kind == PointerKind::Down {
+        app.canvas.drag_start = None;
+    }
     if kind == PointerKind::Up {
         app.canvas.pressure = None;
     }
@@ -354,6 +357,18 @@ fn send(app: &mut FigApp, kind: PointerKind, pos: Pos2, m: &egui::Modifiers) {
     if let Err(e) = app.session.pointer(&ev) {
         app.toast(e.to_string());
     }
+    if kind == PointerKind::Down {
+        app.canvas.drag_start = app.session.ds().ok().map(|ds| super::DragStart {
+            doc: ds.doc.clone(),
+            selection: ds.selection.clone(),
+            page: ds.page,
+            uid: ds.uid,
+            revision: ds.revision,
+        });
+    } else if kind == PointerKind::Up {
+        app.canvas.drag_start = None;
+    }
+    super::update_drag_preview(app, kind);
     app.canvas.last_hover = hover.then(|| HoverKey::of(app, ev));
     app.handle_ui_requests();
 }

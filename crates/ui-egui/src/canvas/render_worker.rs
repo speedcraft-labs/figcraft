@@ -67,6 +67,8 @@ pub struct Job {
     pub dots: Option<figcraft_render::Dots>,
     /// The document's [`figcraft_engine::DocState::uid`]: images of other files are never shown.
     pub uid: u64,
+    /// The visible document/view revision, used to discard stale previews after an edit.
+    pub revision: u64,
     /// A coarse preview may come first when the zoom changes (not in pixel preview, whose pixels
     /// are the point).
     pub zoom_preview: bool,
@@ -84,6 +86,10 @@ pub struct Done {
     /// What it is an image of ([`Job::uid`], [`Job::page`]).
     pub uid: u64,
     pub page: NodeId,
+    /// State revision that produced the image, to keep a drag overlay until the settled page is ready.
+    pub revision: u64,
+    /// Layers omitted from this image, if it is the stable background for a live drag overlay.
+    pub skip: Vec<NodeId>,
     /// A coarse preview, refined by a later image unless a newer request replaced it.
     pub coarse: bool,
     /// [`Job::at`].
@@ -142,7 +148,7 @@ fn done(job: &Job, view: View, pix: &Pixmap, work: Work, ms: f64, coarse: bool) 
     if job.proof {
         mark_outside_srgb(&mut image, pix, job.doc.color_profile);
     }
-    Done { image, view, ms, work, uid: job.uid, page: job.page, coarse, at: job.at, seq: 0 }
+    Done { image, view, ms, work, uid: job.uid, page: job.page, revision: job.revision, skip: job.skip.clone(), coarse, at: job.at, seq: 0 }
 }
 
 /// `view` with [`PREVIEW_FACTOR`] times fewer pixels each way, showing at least the same area.

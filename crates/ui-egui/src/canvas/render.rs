@@ -26,6 +26,13 @@ pub(crate) fn shows(c: &CanvasState, done: &Done, shown: Option<(u64, NodeId)>) 
     if shown != Some((done.uid, done.page)) {
         return false;
     }
+    if !done.skip.is_empty()
+        && !c.drag_preview.as_ref().is_some_and(|preview| {
+            preview.uid == done.uid && preview.page == done.page && preview.revision == done.revision && done.skip.as_slice() == [preview.id]
+        })
+    {
+        return false;
+    }
     let refined = !c.tex_coarse && c.tex_of == shown;
     if done.coarse && refined && done.seq <= c.tex_seq {
         return false;
@@ -60,7 +67,14 @@ pub(super) fn request_render(app: &mut FigApp, worker: &mut Worker, ppp: f32, ma
         (ds.view.zoom * f64::from(ppp), (rect.width() * ppp).ceil().max(1.0) as u32, (rect.height() * ppp).ceil().max(1.0) as u32)
     };
     // The edited text is drawn live (an IME composition included); the caret is an overlay.
-    let doc = app.preedit_view().map(|p| p.doc.clone()).unwrap_or_else(|| ds.doc.clone());
+    let live_doc = app.preedit_view().map(|p| p.doc.clone()).unwrap_or_else(|| ds.doc.clone());
+    let drag =
+        app.canvas.drag_preview.as_ref().filter(|p| app.canvas.dragging && p.uid == ds.uid && p.page == ds.page && app.preedit_view().is_none());
+    // A simple isolated rectangle does not change the rest of the page while it moves. Reuse the
+    // pointer-down document and omit that rectangle from one retained background render; the
+    // egui/wgpu painter moves its cached preview image until the normal full render arrives.
+    let doc = drag.map_or(live_doc, |p| p.doc.clone());
+    let skip = drag.map_or_else(Vec::new, |p| vec![p.id]);
     let outlined = if ds.view.outlines_selection { ds.selection.clone() } else { vec![] };
     let proof = ds.view.proof_srgb && !doc.color_profile.is_srgb();
     let outline_extras = figcraft_render::Outline { hidden: ds.view.outline_hidden, bounds: ds.view.outline_bounds, light: false };
@@ -81,7 +95,7 @@ pub(super) fn request_render(app: &mut FigApp, worker: &mut Worker, ppp: f32, ma
         outline: ds.view.outlines,
         outline_extras,
         outlined: outlined.clone(),
-        skip: vec![],
+        skip: skip.clone(),
         solo: ds.focused(),
         fonts: figcraft_text::layout_generation(),
         proof,
@@ -105,11 +119,12 @@ pub(super) fn request_render(app: &mut FigApp, worker: &mut Worker, ppp: f32, ma
         outline: ds.view.outlines,
         outline_extras,
         outlined,
-        skip: vec![],
+        skip,
         solo: key.solo,
         proof,
         dots,
         uid: ds.uid,
+        revision: drag.map_or(ds.revision, |preview| preview.revision),
         zoom_preview: ds.view.pixel_preview_scale().is_none(),
         at: web_time::Instant::now(),
     };
