@@ -82,6 +82,7 @@ fn job(doc: &Arc<Document>, page: NodeId, uid: u64, view: View) -> Job {
         proof: false,
         dots: None,
         uid,
+        revision: 0,
         zoom_preview: true,
         at: Instant::now(),
     }
@@ -276,7 +277,7 @@ fn outline_mode_proofing_and_glass_preview_and_settle_like_fresh_renders() {
 
 #[test]
 fn the_canvas_shows_images_of_its_own_page_and_never_a_coarser_one_of_its_view() {
-    let (s, _) = document();
+    let (s, rect) = document();
     let ds = s.ds().unwrap();
     let here = Some((ds.uid, ds.page));
     let mut r = Renders::with_threshold(0.0);
@@ -309,6 +310,9 @@ fn the_canvas_shows_images_of_its_own_page_and_never_a_coarser_one_of_its_view()
         c.tex_seq = seq;
         assert!(!shows(&c, &preview, here), "refined image of request {seq}");
     }
+    let mut skipped = refined;
+    skipped.skip.push(rect);
+    assert!(!shows(&c, &skipped, here), "a background with an omitted layer needs its matching overlay");
 }
 
 #[test]

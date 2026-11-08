@@ -238,6 +238,7 @@ fn a_finished_background_render_wakes_the_ui() {
         proof: false,
         dots: None,
         uid: 0,
+        revision: ds.revision,
         zoom_preview: false,
         at: web_time::Instant::now(),
     });

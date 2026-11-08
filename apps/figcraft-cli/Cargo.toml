@@ -29,3 +29,8 @@ thiserror = { workspace = true }
 # 4.6 breaks Bash subcommand completion for hyphenated binary names (clap-rs/clap#6421).
 clap_complete = "~4.5.67"
 clap_mangen = "0.3"
+egui = { workspace = true }
+egui-wgpu = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+figcraft-color = { workspace = true }
+pollster = "0.4"
+sha2 = "0.10"

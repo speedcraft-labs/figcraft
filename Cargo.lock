@@ -1800,6 +1800,9 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "egui",
+ "egui-wgpu",
+ "figcraft-color",
  "figcraft-doc",
  "figcraft-engine",
  "figcraft-format",
@@ -1807,7 +1810,9 @@ dependencies = [
  "figcraft-render",
  "figcraft-svg",
  "figcraft-text",
+ "pollster 0.4.0",
  "serde_json",
+ "sha2",
  "thiserror 2.0.21",
 ]
 
