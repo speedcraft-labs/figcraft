@@ -29,6 +29,7 @@ impl FigApp {
             session,
             canvas: canvas::CanvasState::default(),
             services,
+            raise_without_focus: None,
             worker: None,
             fonts_installed: false,
             script_fonts: None,

@@ -766,6 +766,8 @@ pub struct FigApp {
     pub ui: UiState,
     pub canvas: canvas::CanvasState,
     pub services: Box<dyn Services>,
+    /// Order the window forward for agent-driven UI requests without activating the app (macOS).
+    pub raise_without_focus: Option<fn() -> bool>,
     worker: Option<render_worker::Worker>,
     fonts_installed: bool,
     /// System faces for scripts the built-in fonts lack were added (after the font scan), with

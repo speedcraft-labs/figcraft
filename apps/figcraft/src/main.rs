@@ -29,6 +29,8 @@ mod graphics;
 mod recovery;
 mod services;
 mod startup;
+#[cfg(target_os = "macos")]
+mod window_raise;
 
 #[cfg(all(test, target_os = "macos"))]
 mod apple_events_tests;
@@ -53,6 +55,20 @@ use figcraft_engine::Session;
 use figcraft_ui_egui::windows::with_app;
 use figcraft_ui_egui::{ControlRequest, FigApp};
 use serde_json::json;
+
+/// Driven by an agent (`--control`): don't activate the app on launch, so the user's keyboard
+/// focus stays where it is (macOS; winit activates ignoring other apps by default).
+fn agent_event_loop(agent: bool) -> Option<eframe::EventLoopBuilderHook> {
+    #[cfg(target_os = "macos")]
+    if agent {
+        return Some(Box::new(|b| {
+            use winit::platform::macos::EventLoopBuilderExtMacOS;
+            b.with_activate_ignoring_other_apps(false);
+        }));
+    }
+    let _ = agent;
+    None
+}
 
 /// The app state lives in [`figcraft_ui_egui::windows`] (other windows draw it too).
 struct App {
@@ -174,6 +190,7 @@ fn main() -> eframe::Result {
         }
     };
     let port = args.control.or_else(|| std::env::var("FIGCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok()));
+    let agent = port.is_some();
     // System fonts: index them in the background, then wake the UI (an idle window draws no frames)
     // to lay text out again with them.
     let ctx_slot: Arc<Mutex<Option<egui::Context>>> = Arc::new(Mutex::new(None));
@@ -234,6 +251,10 @@ fn main() -> eframe::Result {
     // open (no frame then).
     figcraft_ui_egui::i18n::set(&session.prefs.language, figcraft_ui_egui::Services::system_language(&svc).as_deref());
     let mut fig = FigApp::new(session, Box::new(svc));
+    #[cfg(target_os = "macos")]
+    if agent {
+        fig.raise_without_focus = Some(window_raise::raise_without_focus);
+    }
     fig.set_startup_update_check(true);
     fig.automation_roots = roots;
     fig.ui.home = false;
@@ -272,6 +293,9 @@ fn main() -> eframe::Result {
         viewport = viewport.with_icon(icon);
     }
     let mut options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, ..Default::default() };
+    // Started for an agent (`--control`): open without taking the user's keyboard focus.
+    options.viewport = options.viewport.with_active(!agent);
+    options.event_loop_builder = agent_event_loop(agent);
     let graphics = graphics::Plan::configure(&mut options.wgpu_options);
     // Counts the frames drawn, which tells a window that failed starting up from one that ran.
     let window = ctx_slot.clone();
