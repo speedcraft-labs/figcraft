@@ -458,6 +458,8 @@ fn hidden(ctx: &Context, id: u64) -> bool {
 fn raise_for_agent_ui(app: &FigApp, ctx: &Context, method: &str) {
     if method.starts_with("ui.") && method != "ui.focus" {
         // UI requests need a rendered pass, but must not activate the app for an agent.
+        #[cfg(target_os = "macos")]
+        ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(egui::viewport::WindowLevel::Normal));
         if let Some(raise_without_focus) = app.raise_without_focus {
             raise_without_focus();
             ctx.request_repaint();
@@ -1520,6 +1522,8 @@ pub fn handle(app: &mut FigApp, ctx: &Context, method: &str, p: &Value) -> Resul
         "window.focus" => crate::windows::focus(app, ctx, p.get("id").and_then(Value::as_u64).ok_or("`id` required")?),
         "ui.focus" => {
             // Explicit request: activate the app and take keyboard focus.
+            #[cfg(target_os = "macos")]
+            ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(egui::viewport::WindowLevel::Normal));
             ctx.send_viewport_cmd_to(crate::windows::viewport(app.windows.current), egui::ViewportCommand::Focus);
             Ok(json!({"ok": true}))
         }

@@ -295,6 +295,11 @@ fn main() -> eframe::Result {
     let mut options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, ..Default::default() };
     // Started for an agent (`--control`): open without taking the user's keyboard focus.
     options.viewport = options.viewport.with_active(!agent);
+    // Keep an agent window behind normal application windows, even when eframe first shows it.
+    #[cfg(target_os = "macos")]
+    if agent {
+        options.viewport = options.viewport.with_window_level(egui::viewport::WindowLevel::AlwaysOnBottom);
+    }
     options.event_loop_builder = agent_event_loop(agent);
     let graphics = graphics::Plan::configure(&mut options.wgpu_options);
     // Counts the frames drawn, which tells a window that failed starting up from one that ran.
