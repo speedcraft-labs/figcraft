@@ -20,6 +20,7 @@
 //! - `ui.screenshot {path?}` — PNG of the window, written to `path` or returned as base64 `data`;
 //!   a hidden window is asked to paint (`RequestPaintWhileHidden`) and the request expires once at
 //!   its deadline (native; the shared web runner does not implement hidden paint yet)
+//! - `ui.focus {}` — explicitly activate the window and take keyboard focus
 //! - `ui.render {path?, scale?, ids?}` — PNG of the document (no UI chrome; works without a
 //!   window), written to `path` or returned as base64 `data`
 //! - `window.new {path?, index?}` → `{window}` / `window.list {}` / `window.focus {id}` — several
@@ -454,6 +455,16 @@ fn hidden(ctx: &Context, id: u64) -> bool {
     visibility(ctx, id) == Some(false)
 }
 
+fn raise_for_agent_ui(app: &FigApp, ctx: &Context, method: &str) {
+    if method.starts_with("ui.") && method != "ui.focus" {
+        // UI requests need a rendered pass, but must not activate the app for an agent.
+        if let Some(raise_without_focus) = app.raise_without_focus {
+            raise_without_focus();
+            ctx.request_repaint();
+        }
+    }
+}
+
 /// How long, in seconds, a window may draw no frame while a control request waits for it before
 /// [`background`] answers the request as it answers one for a hidden window. eframe runs the app's
 /// logic for a window whose redraw is 0.25 s overdue, so the second such pass answers.
@@ -530,6 +541,7 @@ pub fn background(app: &mut FigApp, ctx: &Context) {
             continue;
         }
         let is_hidden = hidden(ctx, target) || stopped_drawing(app, ctx, target, now);
+        raise_for_agent_ui(app, ctx, &r.method);
         if r.method == "ui.screenshot" && visibility(ctx, target) != Some(true) {
             // Hidden, minimised, or with visibility the platform has not reported: admit it now
             // so the request gets its deadline and a forced paint. Waiting for a frame that may
@@ -773,6 +785,7 @@ fn route_queued(app: &mut FigApp, ctx: &Context, viewport: egui::ViewportId, now
         }
         return;
     }
+    raise_for_agent_ui(app, ctx, &r.method);
     if r.method == "ui.screenshot" {
         admit(app, r, target, now);
         return;
@@ -1505,6 +1518,11 @@ pub fn handle(app: &mut FigApp, ctx: &Context, method: &str, p: &Value) -> Resul
         }
         "window.list" => Ok(crate::windows::list(app)),
         "window.focus" => crate::windows::focus(app, ctx, p.get("id").and_then(Value::as_u64).ok_or("`id` required")?),
+        "ui.focus" => {
+            // Explicit request: activate the app and take keyboard focus.
+            ctx.send_viewport_cmd_to(crate::windows::viewport(app.windows.current), egui::ViewportCommand::Focus);
+            Ok(json!({"ok": true}))
+        }
         "ui.inspect" => {
             let mut v = app.inspect();
             // The name of the control with the keyboard (what a screen reader announces).
