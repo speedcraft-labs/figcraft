@@ -6,13 +6,14 @@ exclude = ["plugins"]
 # default-members = ["crates/*", "apps/figcraft", "apps/figcraft-cli", "xtask"]
 
 [workspace.package]
-version = "0.15.0"
+version = "0.18.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
 repository = "https://github.com/storytold/figcraft"
 
 [workspace.dependencies]
+craft-vectordrawable = { version = "0.1.0", git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 # internal
 figcraft-geom = { path = "crates/geom" }
 figcraft-color = { path = "crates/color" }
@@ -36,25 +37,32 @@ figcraft-plugin = { path = "crates/plugin" }
 # Keep coupled craft-libs crates on one rev. craft-update has no sibling-crate
 # dependencies and is pinned separately for the suite updater rollout.
 # Which paths stored in a document may be followed (craft-libs).
-craft-docpath = { version = "0.1.0", git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-docpath = { version = "0.1.0", git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 # Who draws the window frame on Linux — the compositor or the app — so every Craft app shows the
 # same native titlebar per desktop (craft-libs). FigCraft only reads the probe result and maps it
 # to its own `TitleBar`, so it does not enable craft-window's optional `egui` helpers (which would
 # pull a second egui family version).
-craft-window = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-window = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 # craft-update: app-specific pretend versions apply to startup and manual checks.
-craft-update = { git = "https://github.com/storytold/craft-libs", version = "=0.1.0", rev = "1b34eba41e62138fc2438d2734523b302840b45d", features = ["egui"] }
+craft-update = { git = "https://github.com/speedcraft-labs/craft-libs", version = "=0.1.0", rev = "e6a02334d33acee60909033154a1a43088399ea5", features = ["egui"] }
 # The suite's font store: exact lookup of a missing font in the pinned Google Fonts and Noto
 # indexes, and checksum-verified installs into the one folder every Craft app reads (craft-libs).
-craft-font-store = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
-craft-font-catalog = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-font-store = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
+craft-font-catalog = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 # Shared dropdown menus: a combo box whose menu grows back after shrinking (craft-libs).
-craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-ui = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 # The macOS app menu whose Quit (⌘Q) asks the app before quitting, like the window's close button
 # (craft-libs; the menu it replaces quits straight through `terminate:` and loses unsaved work).
-craft-menu = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-menu = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 # Where the settings live: the suite's folder rules, portable mode included (craft-libs).
-craft-settings = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-settings = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
+
+# The design-file formats (craft-libs): the .fig container and its kiwi encoding, the mapping of
+# a .fig message onto the REST file JSON, and that JSON's shared helpers. These crates share
+# types, so they stay on one rev; they share none with the crates above.
+craft-fig = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
+craft-figcraft-format = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
+craft-figma-rest = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }
@@ -183,4 +191,4 @@ winit = { git = "https://github.com/storytold/winit.git", rev = "a517b3846ee8457
 
 # craft-libs' vendored krilla 0.8.2: decoded PNGs are capped at 1 GiB and reserved fallibly, and a
 # panic while drawing unwinds without aborting.
-krilla = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+krilla = { git = "https://github.com/speedcraft-labs/craft-libs", rev = "e6a02334d33acee60909033154a1a43088399ea5" }

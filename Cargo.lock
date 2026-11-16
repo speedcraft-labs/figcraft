@@ -145,6 +145,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "ambient-authority"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9d4ee0d472d1cd2e28c97dfa124b3d8d992e10eb0a035f33f5d12e3a177ba3b"
+
+[[package]]
 name = "android-activity"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -253,7 +259,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
  "wl-clipboard-rs",
  "x11rb",
 ]
@@ -694,6 +700,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "cap-primitives"
+version = "4.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b5f74729fd2f44701d1a8eb47e906cdb3ccd9ec0f02baad85a744b791940b18"
+dependencies = [
+ "ambient-authority",
+ "fs-set-times",
+ "io-extras",
+ "io-lifetimes 3.0.1",
+ "ipnet",
+ "maybe-owned",
+ "rustix 1.1.5",
+ "rustix-linux-procfs",
+ "windows-sys 0.61.2",
+ "winx",
+]
+
+[[package]]
 name = "cc"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1001,7 +1025,7 @@ dependencies = [
 [[package]]
 name = "craft-atomic"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "rustix 1.1.5",
 ]
@@ -1009,44 +1033,90 @@ dependencies = [
 [[package]]
 name = "craft-docpath"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+
+[[package]]
+name = "craft-fig"
+version = "0.1.0"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+dependencies = [
+ "craft-figma-rest",
+ "craft-kiwi",
+ "craft-zip",
+ "flate2",
+ "kurbo",
+ "ruzstd",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "craft-figcraft-format"
+version = "0.1.0"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+dependencies = [
+ "craft-zip",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "zip 9.1.1",
+]
+
+[[package]]
+name = "craft-figma-rest"
+version = "0.1.0"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "craft-font-catalog"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "fontique",
+ "harfrust 0.13.3",
+ "kurbo",
  "skrifa 0.47.0",
  "thiserror 2.0.21",
+ "unicode-bidi",
+ "unicode-segmentation",
  "windows-registry",
 ]
 
 [[package]]
 name = "craft-font-store"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
+ "cap-primitives",
  "craft-atomic",
  "craft-font-catalog",
  "flate2",
+ "log",
+ "ruzstd",
  "serde",
  "serde_json",
  "sha2",
  "skrifa 0.47.0",
+ "tar",
  "thiserror 2.0.21",
+ "toml",
  "ureq",
 ]
 
 [[package]]
 name = "craft-fonts-build"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 
 [[package]]
 name = "craft-i18n"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "fixed_decimal",
  "icu_decimal",
@@ -1069,7 +1139,7 @@ dependencies = [
 [[package]]
 name = "craft-keymap"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "egui",
  "serde",
@@ -1077,9 +1147,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-kiwi"
+version = "0.1.0"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+
+[[package]]
 name = "craft-menu"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "craft-keymap",
  "craft-quit",
@@ -1092,7 +1167,7 @@ dependencies = [
 [[package]]
 name = "craft-quit"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "dispatch2",
  "egui",
@@ -1103,7 +1178,7 @@ dependencies = [
 [[package]]
 name = "craft-settings"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "craft-atomic",
  "dirs",
@@ -1114,7 +1189,7 @@ dependencies = [
 [[package]]
 name = "craft-ui"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "craft-fonts-build",
  "craft-i18n",
@@ -1134,7 +1209,7 @@ dependencies = [
 [[package]]
 name = "craft-update"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "chrono",
  "dunce",
@@ -1144,6 +1219,7 @@ dependencies = [
  "image",
  "log",
  "plist",
+ "rustix 1.1.5",
  "semver",
  "serde",
  "serde_json",
@@ -1158,9 +1234,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-vectordrawable"
+version = "0.1.0"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+dependencies = [
+ "kurbo",
+]
+
+[[package]]
 name = "craft-web-api"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=fd5e2feff6ea25bed371a99cc732b3968d621505#fd5e2feff6ea25bed371a99cc732b3968d621505"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "js-sys",
  "serde_json",
@@ -1171,7 +1255,7 @@ dependencies = [
 [[package]]
 name = "craft-web-host"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=fd5e2feff6ea25bed371a99cc732b3968d621505#fd5e2feff6ea25bed371a99cc732b3968d621505"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "wasm-bindgen",
  "web-sys",
@@ -1180,9 +1264,19 @@ dependencies = [
 [[package]]
 name = "craft-window"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "wayland-client",
+]
+
+[[package]]
+name = "craft-zip"
+version = "0.1.0"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
+dependencies = [
+ "flate2",
+ "thiserror 2.0.21",
+ "zip 9.1.1",
 ]
 
 [[package]]
@@ -1375,7 +1469,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1546,6 +1640,7 @@ dependencies = [
  "raw-window-handle",
  "smithay-clipboard",
  "web-time",
+ "webbrowser",
  "windows-sys 0.61.2",
  "winit",
 ]
@@ -1716,7 +1811,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1783,7 +1878,7 @@ checksum = "b97b65636e5b9ef369943878ac74335ba1c55c1cb6adbf1e2c293c624248d693"
 
 [[package]]
 name = "figcraft"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "arboard",
  "craft-menu",
@@ -1811,19 +1906,17 @@ dependencies = [
  "windows",
  "winit",
  "winresource",
+ "winsafe",
  "zbus",
 ]
 
 [[package]]
 name = "figcraft-cli"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
- "egui",
- "egui-wgpu",
- "figcraft-color",
  "figcraft-doc",
  "figcraft-engine",
  "figcraft-format",
@@ -1831,15 +1924,13 @@ dependencies = [
  "figcraft-render",
  "figcraft-svg",
  "figcraft-text",
- "pollster 0.4.0",
  "serde_json",
- "sha2",
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "figcraft-collab"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1857,7 +1948,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-collab-net"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "figcraft-collab",
@@ -1880,7 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-color"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "kurbo",
  "serde",
@@ -1889,7 +1980,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-doc"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "figcraft-color",
  "figcraft-geom",
@@ -1902,7 +1993,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-engine"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "craft-docpath",
@@ -1936,8 +2027,11 @@ dependencies = [
 
 [[package]]
 name = "figcraft-format"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
+ "craft-fig",
+ "craft-figcraft-format",
+ "craft-figma-rest",
  "figcraft-doc",
  "figcraft-layout",
  "figcraft-pathops",
@@ -1953,7 +2047,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-geom"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "kurbo",
  "serde",
@@ -1961,7 +2055,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-layout"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "figcraft-doc",
  "figcraft-geom",
@@ -1969,7 +2063,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-mcp"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "figcraft-collab-net",
@@ -1985,7 +2079,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-pathops"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "figcraft-doc",
  "figcraft-geom",
@@ -1994,7 +2088,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-pdf"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "figcraft-color",
  "figcraft-doc",
@@ -2011,7 +2105,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-plugin"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "figcraft-color",
  "serde",
@@ -2024,7 +2118,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-render"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "crc32fast",
  "figcraft-color",
@@ -2043,7 +2137,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-server"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "chrono",
  "crc32fast",
@@ -2068,7 +2162,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-svg"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "figcraft-color",
@@ -2084,7 +2178,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-text"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "core-text",
  "craft-font-catalog",
@@ -2102,7 +2196,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-ui-egui"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -2130,8 +2224,9 @@ dependencies = [
 
 [[package]]
 name = "figcraft-vectordrawable"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
+ "craft-vectordrawable",
  "figcraft-color",
  "figcraft-doc",
  "figcraft-geom",
@@ -2144,7 +2239,7 @@ dependencies = [
 
 [[package]]
 name = "figcraft-web"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.22.1",
  "craft-web-api",
@@ -2342,6 +2437,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "fs-set-times"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94e7099f6313ecacbe1256e8ff9d617b75d1bcb16a6fddef94866d225a01a14a"
+dependencies = [
+ "io-lifetimes 2.0.4",
+ "rustix 1.1.5",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2998,6 +3104,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-extras"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20fd6de4ccfcc187e38bc21cfa543cb5a302cb86a8b114eb7f0bf0dc9f8ac00f"
+dependencies = [
+ "io-lifetimes 3.0.1",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "io-lifetimes"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06432fb54d3be7964ecd3649233cddf80db2832f47fec34c01f65b3d9d774983"
+
+[[package]]
+name = "io-lifetimes"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f0fb0570afe1fed943c5c3d4102d5358592d8625fda6a0007fdbe65a92fba96"
+
+[[package]]
+name = "ipnet"
+version = "2.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3164,7 +3298,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "krilla"
 version = "0.8.2"
-source = "git+https://github.com/storytold/craft-libs?rev=e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545#e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545"
+source = "git+https://github.com/speedcraft-labs/craft-libs?rev=e6a02334d33acee60909033154a1a43088399ea5#e6a02334d33acee60909033154a1a43088399ea5"
 dependencies = [
  "base64 0.22.1",
  "bumpalo",
@@ -3301,6 +3435,12 @@ name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "maybe-owned"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4facc753ae494aeb6e3c22f839b158aebd4f9270f55cd3c79906c45476c47ab4"
 
 [[package]]
 name = "memchr"
@@ -3888,7 +4028,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4584,7 +4724,17 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "rustix-linux-procfs"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fc84bf7e9aa16c4f2c758f27412dc9841341e16aa682d9c7ac308fe3ee12056"
+dependencies = [
+ "once_cell",
+ "rustix 1.1.5",
 ]
 
 [[package]]
@@ -4641,7 +4791,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5210,10 +5360,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.5",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6337,7 +6487,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6639,6 +6789,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ef0ffc427f045c0cc9ebffd6f4f91153dcd2a1547b5c3c29ee3f541e16e95c6"
 
 [[package]]
+name = "winx"
+version = "0.36.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f3fd376f71958b862e7afb20cfe5a22830e1963462f3a17f49d82a6c1d1f42d"
+dependencies = [
+ "bitflags 2.13.2",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "wit-bindgen"
 version = "0.57.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6767,7 +6927,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.15.0"
+version = "0.18.1"
 dependencies = [
  "figcraft-engine",
  "serde_json",
