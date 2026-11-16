@@ -29,6 +29,7 @@ mod graphics;
 mod recovery;
 mod services;
 mod startup;
+mod window_frame;
 #[cfg(target_os = "macos")]
 mod window_raise;
 
@@ -56,14 +57,13 @@ use figcraft_ui_egui::windows::with_app;
 use figcraft_ui_egui::{ControlRequest, FigApp};
 use serde_json::json;
 
-/// Driven by an agent (`--control`): don't activate the app on launch, so the user's keyboard
-/// focus stays where it is (macOS; winit activates ignoring other apps by default).
+/// Control-driven sessions leave keyboard focus in the user's current application (macOS).
 fn agent_event_loop(agent: bool) -> Option<eframe::EventLoopBuilderHook> {
     #[cfg(target_os = "macos")]
     if agent {
-        return Some(Box::new(|b| {
+        return Some(Box::new(|builder| {
             use winit::platform::macos::EventLoopBuilderExtMacOS;
-            b.with_activate_ignoring_other_apps(false);
+            builder.with_activate_ignoring_other_apps(false);
         }));
     }
     let _ = agent;
@@ -79,6 +79,8 @@ struct App {
     title: String,
     /// Shared with the services, which write the copies after a panic.
     recovery: recovery::Shared,
+    /// Keeps the custom title bar's undecorated windows borderless (Windows, #1343).
+    window_frame: window_frame::WindowFrame,
     /// Documents and quit requests from Finder, the Dock and Open With.
     #[cfg(target_os = "macos")]
     apple_events: fmv_macos_events::Inbox,
@@ -127,6 +129,9 @@ impl eframe::App for App {
     }
 
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        // winit gives an undecorated window its caption back when it changes the window's flags
+        // (maximize, restore, ...): take it off again before the frame is laid out (#1343).
+        self.window_frame.run();
         // Pointer and key events sent over the control channel (`ui.input`), for the window
         // about to draw.
         if let Some(events) = with_app(|fig| figcraft_ui_egui::windows::take_input(fig, raw_input.viewport_id)) {
@@ -289,13 +294,12 @@ fn main() -> eframe::Result {
     // the old bespoke xdg-decoration probe that always drew FigCraft's custom title bar on KDE.
     fig.ui.title_bar = desktop_title_bar();
     viewport = window_chrome(viewport, fig.ui.title_bar);
+    let custom_titlebar = fig.ui.title_bar == figcraft_ui_egui::TitleBar::Custom;
     if let Some(icon) = icon {
         viewport = viewport.with_icon(icon);
     }
     let mut options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, ..Default::default() };
-    // Started for an agent (`--control`): open without taking the user's keyboard focus.
     options.viewport = options.viewport.with_active(!agent);
-    // Keep an agent window behind normal application windows, even when eframe first shows it.
     #[cfg(target_os = "macos")]
     if agent {
         options.viewport = options.viewport.with_window_level(egui::viewport::WindowLevel::AlwaysOnBottom);
@@ -333,6 +337,9 @@ fn main() -> eframe::Result {
                 ctx_slot,
                 title: String::new(),
                 recovery,
+                // The custom title bar's undecorated window must stay borderless, or its caption
+                // and border offset the content and the pointer on some Windows systems (#1343).
+                window_frame: window_frame::WindowFrame::new(custom_titlebar),
                 #[cfg(target_os = "macos")]
                 apple_events: apple_events.connect(&cc.egui_ctx),
             }))
